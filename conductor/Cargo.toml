@@ -1,0 +1,12 @@
+[package]
+name = "mealloc-conductor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+spin.workspace = true
+mealloc-container = { path = "../container" }
+uefi = "0.34.1"
+smallvec = "1.13.2"
+volatile = "0.6.1"
+tinyvec = "1.8.1"

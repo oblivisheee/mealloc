@@ -1,0 +1,6 @@
+[workspace]
+members = ["conductor", "container"]
+resolver = "2"
+
+[workspace.dependencies]
+spin = "0.9.8"
