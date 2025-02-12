@@ -42,6 +42,7 @@ impl Default for Span {
 pub struct Address(NonNull<u8>);
 
 impl Address {
+    //FIXME: Here can be a problem that it'll panic if the pointer is null
     pub fn new(ptr: *mut u8) -> Self {
         Self(NonNull::new(ptr).unwrap())
     }
