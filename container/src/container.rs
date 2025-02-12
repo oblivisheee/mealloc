@@ -14,6 +14,7 @@ impl Container {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ContainerID {
     id: uuid::Uuid,
 }
