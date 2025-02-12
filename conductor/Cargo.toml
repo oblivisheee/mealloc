@@ -6,7 +6,5 @@ edition = "2021"
 [dependencies]
 spin.workspace = true
 mealloc-container = { path = "../container" }
-uefi = "0.34.1"
 smallvec = "1.13.2"
-volatile = "0.6.1"
-tinyvec = "1.8.1"
+tinyvec = { version = "1.8.1", features = ["tinyvec_macros"] }
