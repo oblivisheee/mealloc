@@ -1,7 +1,7 @@
 #![no_std]
 
-mod container;
-mod mem;
+pub mod container;
+pub mod mem;
 
 use core::alloc::GlobalAlloc;
 
