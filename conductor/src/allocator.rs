@@ -1,7 +1,9 @@
-extern crate alloc;
-use alloc::{boxed::Box, vec};
+use super::{
+    mem::Buffer,
+    types::{Address, ContainerID},
+};
+use core::alloc::Layout;
 use smallvec::{smallvec, Array, SmallVec};
-use tinyvec::SliceVec;
 
 /// Quantity of 10KB to fulfill 32GB RAM. Calculated via
 ///
@@ -42,60 +44,87 @@ impl Allocator {
             buf,
         }
     }
-}
+    pub fn allocate(&mut self, id: ContainerID, size: usize) -> Option<(Address, Address)> {
+        let num_blocks_needed = (size + self.block_size - 1) / self.block_size;
 
-/// Buffer for memory allocation
-pub struct Buffer(pub &'static mut [u8]);
+        for i in 0..self.blocks_len() - num_blocks_needed + 1 {
+            if self.blocks[i..i + num_blocks_needed]
+                .iter()
+                .all(|b| !b.status())
+            {
+                for j in i..i + num_blocks_needed {
+                    self.blocks[j].alloc(id.clone());
+                }
+                let start_address =
+                    (self.buf.as_mut_ptr() as usize + i * self.block_size) as *mut u8;
+                let end_address = (self.buf.as_mut_ptr() as usize
+                    + (i + num_blocks_needed - 1) * self.block_size)
+                    as *mut u8;
+                return Some((Address::new(start_address), Address::new(end_address)));
+            }
+        }
+        None
+    }
+    pub fn deallocate(&mut self, id: &ContainerID, start: Address, size: usize) {
+        let start_ptr = start.as_ptr() as usize;
+        let start_index = (start_ptr - self.buf.as_mut_ptr() as usize) / self.block_size;
+        let num_blocks = (size + self.block_size - 1) / self.block_size;
 
-impl Buffer {
-    /// Create an empty buffer with no capacity
-    pub fn empty() -> Self {
-        Buffer(&mut [])
+        for i in start_index..start_index + num_blocks {
+            if let Some(block_id) = self.blocks[i].container_id() {
+                if &block_id == id {
+                    self.blocks[i].dealloc();
+                }
+            }
+        }
     }
-    /// Create a buffer with a given capacity
-    pub fn with_capacity(capacity: usize) -> Self {
-        let vec = vec![0; capacity].into_boxed_slice();
-        Buffer(Box::leak(vec))
-    }
-    /// Create a buffer from a slice
-    pub fn from_slice(slice: &'static mut [u8]) -> Self {
-        Buffer(slice)
-    }
-}
 
-impl From<&'static mut [u8]> for Buffer {
-    fn from(slice: &'static mut [u8]) -> Self {
-        Buffer(slice)
+    pub fn blocks_len(&self) -> usize {
+        self.blocks.len()
     }
-}
-impl core::ops::Deref for Buffer {
-    type Target = [u8];
-    fn deref(&self) -> &[u8] {
-        self.0
-    }
-}
-impl core::ops::DerefMut for Buffer {
-    fn deref_mut(&mut self) -> &mut [u8] {
-        self.0
-    }
-}
-fn test() {
-    let v = [1, 2, 3];
-    let buf = Buffer::empty();
 }
 
 /// Represents a block of memory that has 2 states: allocated or deallocated
-#[derive(Clone, Copy)]
-pub struct Block(pub bool);
+#[derive(Clone)]
+pub struct Block {
+    status: bool,
+    container_id: Option<ContainerID>,
+}
 
 impl Block {
+    /// Create a new block with deallocated status
     pub fn new() -> Self {
-        Block(false)
+        Block {
+            status: false,
+            container_id: None,
+        }
     }
-    pub fn alloc(&mut self) {
-        self.0 = true;
+
+    /// Allocate the block
+    pub fn alloc(&mut self, container_id: ContainerID) {
+        self.status = true;
+        self.container_id = Some(container_id);
     }
+    /// Deallocate the block
     pub fn dealloc(&mut self) {
-        self.0 = false;
+        self.status = false;
+        self.container_id = None;
+    }
+    /// If allocated, return true, otherwise return false
+    pub const fn status(&self) -> bool {
+        self.status
+    }
+    pub fn container_id(&self) -> Option<ContainerID> {
+        self.container_id.clone()
+    }
+}
+
+impl core::ops::Not for Block {
+    type Output = Self;
+    fn not(self) -> Self::Output {
+        Block {
+            status: !self.status,
+            container_id: self.container_id,
+        }
     }
 }
