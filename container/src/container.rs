@@ -1,16 +1,30 @@
-use super::mem::Span;
+use super::mem::{Address, Span};
 
+#[derive(Clone)]
 pub struct Container {
     id: ContainerID,
-    memory: Span,
+    metadata: ContainerMetadata,
+    span: Option<Span>,
 }
 
 impl Container {
-    pub fn new() -> Self {
+    pub fn new(memory_size: usize) -> Self {
         Self {
             id: ContainerID::new(),
-            memory: Span::empty(),
+            metadata: ContainerMetadata { memory_size },
+            span: None,
         }
+    }
+    pub fn set_span(&mut self, start: Address, end: Address) {
+        self.span = Some(Span::new(start, end));
+    }
+
+    pub const fn id(&self) -> &ContainerID {
+        &self.id
+    }
+
+    pub const fn metadata(&self) -> &ContainerMetadata {
+        &self.metadata
     }
 }
 
@@ -36,4 +50,9 @@ impl core::ops::DerefMut for ContainerID {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.id
     }
+}
+
+#[derive(Clone)]
+pub struct ContainerMetadata {
+    pub memory_size: usize,
 }

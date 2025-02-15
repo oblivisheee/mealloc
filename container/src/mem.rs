@@ -1,5 +1,6 @@
 use core::ops::Range;
 use core::ptr::NonNull;
+#[derive(Clone, Debug)]
 pub struct Span {
     start: Address,
     end: Address,

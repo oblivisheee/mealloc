@@ -2,7 +2,6 @@ use super::{
     mem::Buffer,
     types::{Address, ContainerID},
 };
-use core::alloc::Layout;
 use smallvec::{smallvec, Array, SmallVec};
 
 /// Quantity of 10KB to fulfill 32GB RAM. Calculated via
@@ -10,7 +9,8 @@ use smallvec::{smallvec, Array, SmallVec};
 /// 32 GB = 32 * 1024 MB * 1024 KB = 33,554,432 KB
 /// 33,554,432 KB / 10 KB = 3,355,443.2
 /// Rounded to 3,355,444 blocks
-const BLOCKS_ARRAY_CAPACITY_32GB: usize = 3355444;
+//TODO: Fix setting block capacity of Block Array, because it causes a stack overflow
+const BLOCKS_ARRAY_CAPACITY_32GB: usize = 10000; //3355444;
 
 /// Set the capacity of array.
 const BLOCKS_ARRAY_CAPACITY: usize = BLOCKS_ARRAY_CAPACITY_32GB;
@@ -65,20 +65,18 @@ impl Allocator {
         }
         None
     }
-    pub fn deallocate(&mut self, id: &ContainerID, start: Address, size: usize) {
-        let start_ptr = start.as_ptr() as usize;
-        let start_index = (start_ptr - self.buf.as_mut_ptr() as usize) / self.block_size;
-        let num_blocks = (size + self.block_size - 1) / self.block_size;
-
-        for i in start_index..start_index + num_blocks {
-            if let Some(block_id) = self.blocks[i].container_id() {
+    pub fn deallocate(&mut self, id: &ContainerID) {
+        for block in self.blocks.iter_mut() {
+            if let Some(block_id) = block.container_id() {
                 if &block_id == id {
-                    self.blocks[i].dealloc();
+                    block.dealloc();
                 }
             }
         }
     }
-
+    pub const fn block_size(&self) -> usize {
+        self.block_size
+    }
     pub fn blocks_len(&self) -> usize {
         self.blocks.len()
     }
