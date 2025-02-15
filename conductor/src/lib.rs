@@ -1,9 +1,13 @@
 #![no_std]
 mod allocator;
+mod block;
 mod mem;
 mod types;
+
 use smallvec::{Array, SmallVec};
+use talc::*;
 use types::Container;
+
 /// Maximum number of containers that can be stored in the stack.
 const MAX_CONTAINERS_STACK: usize = 128;
 
@@ -75,7 +79,7 @@ mod tests {
         println!("PASSED");
         let mut conductor = Conductor::new();
         println!("PASSED");
-        conductor.load(10 * 1024, 1024 * 1024);
+        conductor.load(10 * 1024, 15 * 1024);
         println!("PASSED");
         let container_id = conductor.create_container(1024).unwrap().id().clone();
         assert_eq!(conductor.containers.len(), 1);

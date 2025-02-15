@@ -1,3 +1,4 @@
+use mealloc_container::mem::Address;
 use tinyvec::SliceVec;
 /// Buffer for memory allocation
 pub struct Buffer(pub SliceVec<'static, u8>);
@@ -22,6 +23,17 @@ impl Buffer {
     /// Create a buffer from a slice
     pub fn from_slice(slice: &'static mut [u8]) -> Self {
         Buffer(slice.into())
+    }
+
+    pub fn zero_range(&mut self, start: impl Into<Address>, end: impl Into<Address>) {
+        let start_ptr = start.into().as_ptr() as usize;
+        let end_ptr = end.into().as_ptr() as usize;
+        if start_ptr >= end_ptr || end_ptr > self.0.len() {
+            panic!("Invalid address range");
+        }
+        for i in start_ptr..end_ptr {
+            self.0[i] = 0;
+        }
     }
 }
 
